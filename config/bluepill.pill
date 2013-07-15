@@ -1,39 +1,25 @@
-# Usage:
-#     sudo gem install bluepill
-#
-#     Load and start app:
-#         sudo SERVICE_ENV=staging bluepill load bluepill.pill
-#     Stop app but keep Bluepill running:
-#         sudo bluepill stop
-#     Start app (again):
-#         sudo bluepill start
-#     Quit Bluepill (you may want to stop app beforehand):
-#         sudo bluepill quit
-#
-app_name = "descartes"
-app_dir = "/var/www/#{app_name}"
-service_env = ENV['RAILS_ENV'] || ENV['RACK_ENV'] || ENV['SERVICE_ENV'] || 'development'
-fg = service_env == 'development' ? true : false
+Bluepill.application("descartes", :foreground => false, :log_file => "#{app_dir}/shared/log/bluepill.log") do |app|
 
-Bluepill.application("#{app_name}_#{script_name}_service", :base_dir => "#{app_dir}/shared", :foreground => fg) do |app|
-  app.working_dir = "#{app_dir}/current"
   app.uid = "deploy"
   app.gid = "deploy"
 
   app.process("#{app_name}") do |process|
-    process.environment = {
-      'SERVICE_ENV' => service_env
-    }
-    process.pid_file = "#{app_dir}/shared/pids/#{app_name}.pid"
-    process.stdout = process.stderr = "#{app_dir}/shared/log/bluepill.log"
+    process.start_command = "bundle exec rackup -p $PORT -s thin"
+
+    process.working_dir = "#{app_dir}/current"
     process.daemonize = true
+    process.environment = {"PORT"=>"5000"}
+    process.stop_signals = [:quit, 30.seconds, :term, 5.seconds, :kill]
+    process.stop_grace_time = 45.seconds
 
-    process.start_command = "service descartes start"
-    process.stop_command = "service descartes stop"
-    process.restart_command = "service descartes restart"
+    process.stdout = process.stderr = "#{app_dir}/shared/log/descartes-web-1.log"
 
-    process.start_grace_time = 8.seconds
-    process.stop_grace_time = 5.seconds
-    process.restart_grace_time = 13.seconds
+    process.monitor_children do |children|
+      children.stop_command "kill {{PID}}"
+    end
+
+    process.group = "descartes-web"
   end
+
+
 end
