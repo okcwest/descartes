@@ -4,6 +4,13 @@ require 'descartes/web'
 require 'descartes/github_auth'
 require 'rack-canonical-host'
 
+require 'rack/contrib'
+
+use Rack::ResponseHeaders do |headers|
+  headers['Access-Control-Allow-Origin'] = '*'
+  headers['Access-Control-Request-Method'] = '*'
+end
+
 use Rack::CanonicalHost do
   case ENV['RACK_ENV'].to_sym
     when :production then ENV['CANONICAL_HOST'] if defined?ENV['CANONICAL_HOST']
