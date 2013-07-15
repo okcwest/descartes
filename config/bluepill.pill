@@ -1,4 +1,7 @@
-Bluepill.application("descartes", :foreground => false, :log_file => "#{app_dir}/shared/log/bluepill.log") do |app|
+app_name = "descartes"
+app_dir = "/var/www/#{app_name}"
+
+Bluepill.application("#{app_name}_service",:base_dir => "#{app_dir}/shared", :foreground => false, :log_file => "#{app_dir}/shared/log/bluepill.log") do |app|
 
   app.uid = "deploy"
   app.gid = "deploy"
