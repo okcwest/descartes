@@ -1,0 +1,28 @@
+app_name = "descartes"
+app_dir = "/var/www/#{app_name}"
+
+Bluepill.application("#{app_name}_service",:base_dir => "#{app_dir}/shared", :foreground => false, :log_file => "#{app_dir}/shared/log/bluepill.log") do |app|
+
+  app.uid = "deploy"
+  app.gid = "deploy"
+
+  app.process("#{app_name}") do |process|
+    process.start_command = "bundle exec rackup -p $PORT -s thin"
+
+    process.working_dir = "#{app_dir}/current"
+    process.daemonize = true
+    process.environment = {"PORT"=>"5000"}
+    process.stop_signals = [:quit, 30.seconds, :term, 5.seconds, :kill]
+    process.stop_grace_time = 45.seconds
+
+    process.stdout = process.stderr = "#{app_dir}/shared/log/descartes-web-1.log"
+
+    process.monitor_children do |children|
+      children.stop_command "kill {{PID}}"
+    end
+
+    process.group = "descartes-web"
+  end
+
+
+end
